@@ -417,7 +417,7 @@ resource "time_sleep" "wait_for_aws_s3_bucket_settings" {
 }
 
 module "logs" {
-  source                   = "git::https://github.com/loanphan-netapp/terraform-aws-s3-log-storage?ref=ic-console2-dns"
+  source                   = "git::https://github.com/instaclustr/terraform-aws-s3-log-storage?ref=ic-console2-dns"
   enabled                  = local.create_cf_log_bucket
   attributes               = var.extra_logs_attributes
   allow_ssl_requests_only  = true
