@@ -157,6 +157,22 @@ data "aws_iam_policy_document" "s3_origin_access_identity" {
 
   statement {
     sid = ""
+    actions = ["s3:*"]
+    not_principals {
+      type        = "AWS"
+      identifiers = [local.cf_access.arn]
+    }
+    effect = "Deny"
+    resources = ["arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}", "arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}/*"]
+    condition {
+      test = "StringNotLike"
+      variable = "aws:userId"
+      values = "${var.s3_bucket_access_userids}"
+    }
+  }
+
+  statement {
+    sid = ""
 
     actions   = ["s3:GetObject"]
     resources = ["arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}${local.origin_path}*"]

@@ -728,6 +728,11 @@ variable "bucket_versioning" {
   }
 }
 
+variable "s3_bucket_access_userids" {
+  type = list(string)
+  description = "The ID's (either role or user) that are allowed access to the bucket in addition to cloudfront. See https://aws.amazon.com/blogs/security/how-to-restrict-amazon-s3-bucket-access-to-a-specific-iam-role/"
+}
+
 variable "grants" {
   type = list(object({
     id          = string
