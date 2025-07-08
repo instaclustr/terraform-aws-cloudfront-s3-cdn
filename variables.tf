@@ -727,3 +727,31 @@ variable "bucket_versioning" {
     error_message = "Please choose one of 'Enabled', 'Disabled', or 'Suspended'"
   }
 }
+
+variable "s3_bucket_access_userids" {
+  type = list(string)
+  description = "The ID's (either role or user) that are allowed access to the bucket in addition to cloudfront. See https://aws.amazon.com/blogs/security/how-to-restrict-amazon-s3-bucket-access-to-a-specific-iam-role/"
+}
+
+variable "grants" {
+  type = list(object({
+    id          = string
+    type        = string
+    permissions = list(string)
+    uri         = string
+  }))
+  description = <<-EOT
+    A list of policy grants for the bucket, taking a list of permissions.
+    Conflicts with `acl`. Set `acl` to `null` to use this.
+    Deprecated by AWS in favor of bucket policies, but still required for some log delivery services.
+    Automatically disabled if `s3_object_ownership` is set to "BucketOwnerEnforced".
+    EOT
+  default     = []
+  nullable    = false
+}
+
+variable "transition_default_minimum_object_size" {
+  type        = string
+  default     = "all_storage_classes_128K"
+  description = "The default minimum object size behavior applied to the lifecycle configuration"
+}

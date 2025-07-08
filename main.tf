@@ -58,7 +58,7 @@ locals {
   cf_access = local.cf_access_options[local.create_cloudfront_origin_access_identity || local.create_cloudfront_origin_access_control ? "new" : "existing"]
 
   bucket             = local.origin_bucket.bucket
-  bucket_domain_name = var.website_enabled ? local.origin_bucket.website_endpoint : local.origin_bucket.bucket_regional_domain_name
+  bucket_domain_name = var.website_enabled ? local.origin_bucket.website_endpoint : local.origin_bucket.bucket_domain_name
 
   override_origin_bucket_policy = local.enabled && var.override_origin_bucket_policy
 
@@ -156,7 +156,23 @@ data "aws_iam_policy_document" "s3_origin_access_identity" {
   override_policy_documents = [local.override_policy]
 
   statement {
-    sid = "S3GetObjectForCloudFront"
+    sid = ""
+    actions = ["s3:*"]
+    not_principals {
+      type        = "AWS"
+      identifiers = [local.cf_access.arn]
+    }
+    effect = "Deny"
+    resources = ["arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}", "arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}/*"]
+    condition {
+      test = "StringNotLike"
+      variable = "aws:userId"
+      values = "${var.s3_bucket_access_userids}"
+    }
+  }
+
+  statement {
+    sid = ""
 
     actions   = ["s3:GetObject"]
     resources = ["arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}${local.origin_path}*"]
@@ -168,7 +184,7 @@ data "aws_iam_policy_document" "s3_origin_access_identity" {
   }
 
   statement {
-    sid = "S3ListBucketForCloudFront"
+    sid = ""
 
     actions   = ["s3:ListBucket"]
     resources = ["arn:${join("", data.aws_partition.current[*].partition)}:s3:::${local.bucket}"]
@@ -292,7 +308,7 @@ resource "aws_s3_bucket_policy" "default" {
   policy = join("", data.aws_iam_policy_document.combined[*].json)
 
   # Don't modify this bucket in two ways at the same time, S3 API will complain.
-  depends_on = [aws_s3_bucket_public_access_block.origin]
+  # depends_on = [aws_s3_bucket_public_access_block.origin]
 }
 
 resource "aws_s3_bucket" "origin" {
@@ -376,21 +392,6 @@ resource "aws_s3_bucket_acl" "origin" {
   acl    = "private"
 }
 
-
-resource "aws_s3_bucket_public_access_block" "origin" {
-  count = (local.create_s3_origin_bucket || local.override_origin_bucket_policy) ? 1 : 0
-
-  bucket = local.bucket
-
-  # Allows the bucket to be publicly accessible by policy
-  block_public_policy     = var.block_origin_public_access_enabled
-  restrict_public_buckets = var.block_origin_public_access_enabled
-
-  # Always block ACL access. We're using policies instead
-  block_public_acls  = true
-  ignore_public_acls = true
-}
-
 resource "aws_s3_bucket_ownership_controls" "origin" {
   count = local.create_s3_origin_bucket ? 1 : 0
 
@@ -411,14 +412,12 @@ resource "time_sleep" "wait_for_aws_s3_bucket_settings" {
   destroy_duration = "30s"
 
   depends_on = [
-    aws_s3_bucket_public_access_block.origin,
     aws_s3_bucket_policy.default
   ]
 }
 
 module "logs" {
-  source                   = "cloudposse/s3-log-storage/aws"
-  version                  = "1.4.2"
+  source                   = "git::https://github.com/instaclustr/terraform-aws-s3-log-storage?ref=1.4.2-instaclustr"
   enabled                  = local.create_cf_log_bucket
   attributes               = var.extra_logs_attributes
   allow_ssl_requests_only  = true
@@ -432,15 +431,8 @@ module "logs" {
   # See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
   s3_object_ownership = "BucketOwnerPreferred"
   acl                 = null
-  grants = [
-    {
-      # Canonical ID for the awslogsdelivery account
-      id          = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
-      permissions = ["FULL_CONTROL"]
-      type        = "CanonicalUser"
-      uri         = null
-    },
-  ]
+  grants = var.grants
+  transition_default_minimum_object_size = var.transition_default_minimum_object_size
 
   context = module.this.context
 }
@@ -739,7 +731,7 @@ module "dns" {
   parent_zone_name = var.parent_zone_name
   target_dns_name  = try(aws_cloudfront_distribution.default[0].domain_name, "")
   target_zone_id   = try(aws_cloudfront_distribution.default[0].hosted_zone_id, "")
-  ipv6_enabled     = var.ipv6_enabled
+  ipv6_enabled     = false
 
   context = module.this.context
 }
