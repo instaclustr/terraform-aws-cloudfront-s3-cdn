@@ -1,6 +1,6 @@
 variable "extra_origin_attributes" {
   type        = list(string)
-  default     = ["origin"]
+  default     = []
   description = "Additional attributes to put onto the origin label"
 }
 
@@ -606,7 +606,7 @@ variable "cloudfront_access_log_create_bucket" {
 
 variable "extra_logs_attributes" {
   type        = list(string)
-  default     = ["logs"]
+  default     = []
   description = <<-EOT
     Additional attributes to add to the end of the generated Cloudfront Access Log S3 Bucket name.
     Only effective if `cloudfront_access_log_create_bucket` is `true`.

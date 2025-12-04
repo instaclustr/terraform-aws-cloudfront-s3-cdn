@@ -58,7 +58,7 @@ locals {
   cf_access = local.cf_access_options[local.create_cloudfront_origin_access_identity || local.create_cloudfront_origin_access_control ? "new" : "existing"]
 
   bucket             = local.origin_bucket.bucket
-  bucket_domain_name = var.website_enabled ? local.origin_bucket.website_endpoint : local.origin_bucket.bucket_regional_domain_name
+  bucket_domain_name = var.website_enabled ? local.origin_bucket.website_endpoint : local.origin_bucket.bucket_domain_name
 
   override_origin_bucket_policy = local.enabled && var.override_origin_bucket_policy
 
@@ -354,15 +354,12 @@ resource "aws_s3_bucket_cors_configuration" "origin" {
 
   bucket = one(aws_s3_bucket.origin).id
 
-  dynamic "cors_rule" {
-    for_each = distinct(compact(concat(var.cors_allowed_origins, flatten(values(var.aliases)), var.external_aliases)))
-    content {
-      allowed_headers = var.cors_allowed_headers
-      allowed_methods = var.cors_allowed_methods
-      allowed_origins = [cors_rule.value]
-      expose_headers  = var.cors_expose_headers
-      max_age_seconds = var.cors_max_age_seconds
-    }
+  cors_rule {
+    allowed_headers = var.cors_allowed_headers
+    allowed_methods = var.cors_allowed_methods
+    allowed_origins = distinct(compact(concat(var.cors_allowed_origins, flatten(values(var.aliases)), var.external_aliases)))
+    expose_headers  = var.cors_expose_headers
+    max_age_seconds = var.cors_max_age_seconds
   }
 
   depends_on = [time_sleep.wait_for_aws_s3_bucket_settings]
@@ -418,7 +415,7 @@ resource "time_sleep" "wait_for_aws_s3_bucket_settings" {
 
 module "logs" {
   source                   = "cloudposse/s3-log-storage/aws"
-  version                  = "1.4.2"
+  version                  = "0.28.0"  # Use older version closer to original v0.4.0 behavior
   enabled                  = local.create_cf_log_bucket
   attributes               = var.extra_logs_attributes
   allow_ssl_requests_only  = true
@@ -430,13 +427,25 @@ module "logs" {
   versioning_enabled       = var.log_versioning_enabled
 
   # See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
-  s3_object_ownership = "BucketOwnerPreferred"
-  acl                 = null
-  grants = [
+  acl_grants = [
     {
-      # Canonical ID for the awslogsdelivery account
+      # LogDelivery group for S3 access logging
+      id          = null
+      permission  = "READ_ACP"
+      type        = "Group"
+      uri         = "http://acs.amazonaws.com/groups/s3/LogDelivery"
+    },
+    {
+      # LogDelivery group for S3 access logging
+      id          = null
+      permission  = "WRITE"
+      type        = "Group"
+      uri         = "http://acs.amazonaws.com/groups/s3/LogDelivery"
+    },
+    {
+      # Canonical ID for the awslogsdelivery account (CloudFront logs)
       id          = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
-      permissions = ["FULL_CONTROL"]
+      permission  = "FULL_CONTROL"
       type        = "CanonicalUser"
       uri         = null
     },
