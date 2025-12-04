@@ -22,9 +22,9 @@ variable "minimum_protocol_version" {
 }
 
 variable "aliases" {
-  type        = list(string)
-  description = "List of FQDN's - Used to set the Alternate Domain Names (CNAMEs) setting on Cloudfront"
-  default     = []
+  type        = map(list(string))
+  description = "Map of default_root_object values to lists of FQDN aliases. Each key should match a default_root_object value. Used to set the Alternate Domain Names (CNAMEs) setting on CloudFront. Example: { 'index.html' = ['www.example.com', 'example.com'] }"
+  default     = {}
 }
 
 variable "external_aliases" {
@@ -93,9 +93,9 @@ variable "compress" {
 }
 
 variable "default_root_object" {
-  type        = string
-  default     = "index.html"
-  description = "Object that CloudFront return when requests the root URL"
+  type        = list(string)
+  default     = ["index.html"]
+  description = "List of objects that CloudFront returns when requests the root URL. One CloudFront distribution will be created for each item in this list."
 }
 
 variable "comment" {

@@ -199,7 +199,7 @@ data "aws_iam_policy_document" "s3_origin_access_control" {
     condition {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
-      values   = [aws_cloudfront_distribution.default[0].arn]
+      values   = aws_cloudfront_distribution.default[*].arn
     }
   }
 }
@@ -355,7 +355,7 @@ resource "aws_s3_bucket_cors_configuration" "origin" {
   bucket = one(aws_s3_bucket.origin).id
 
   dynamic "cors_rule" {
-    for_each = distinct(compact(concat(var.cors_allowed_origins, var.aliases, var.external_aliases)))
+    for_each = distinct(compact(concat(var.cors_allowed_origins, flatten(values(var.aliases)), var.external_aliases)))
     content {
       allowed_headers = var.cors_allowed_headers
       allowed_methods = var.cors_allowed_methods
@@ -460,12 +460,12 @@ resource "aws_cloudfront_distribution" "default" {
   #bridgecrew:skip=CKV2_AWS_47:Skipping `Ensure AWS CloudFront attached WAFv2 WebACL is configured with AMR for Log4j Vulnerability` for the same reason as above.
   #bridgecrew:skip=BC_AWS_NETWORKING_63:Skipping `Verify CloudFront Distribution Viewer Certificate is using TLS v1.2` because the minimum TLS version for the viewer certificate is indeed configurable and is managed via `var.minimum_protocol_version`.
   #bridgecrew:skip=BC_AWS_NETWORKING_65:Skipping `Ensure CloudFront distribution has a strict security headers policy attached` because the response header policy is indeed configurable and is managed via `var.response_headers_policy_id`.
-  count = local.enabled ? 1 : 0
-
-  enabled             = var.distribution_enabled
+  count               = local.enabled ? length(var.default_root_object) : 0
+  enabled             = local.enabled
   is_ipv6_enabled     = var.ipv6_enabled
   comment             = var.comment
-  default_root_object = var.default_root_object
+  default_root_object = var.default_root_object[count.index]  # Added [count.index]
+  aliases             = var.acm_certificate_arn != "" ? concat(lookup(var.aliases, var.default_root_object[count.index], []), var.external_aliases) : []  # Changed logic to map-based with external_aliases
   price_class         = var.price_class
   http_version        = var.http_version
 
@@ -483,8 +483,6 @@ resource "aws_cloudfront_distribution" "default" {
       prefix          = local.cloudfront_access_log_prefix
     }
   }
-
-  aliases = var.acm_certificate_arn != "" ? concat(var.aliases, var.external_aliases) : []
 
   dynamic "origin_group" {
     for_each = var.origin_groups
@@ -732,13 +730,14 @@ resource "aws_cloudfront_distribution" "default" {
 module "dns" {
   source           = "cloudposse/route53-alias/aws"
   version          = "0.13.0"
-  enabled          = (local.enabled && var.dns_alias_enabled)
-  aliases          = var.aliases
+  count            = local.enabled && var.dns_alias_enabled ? length(var.default_root_object) : 0
+  enabled          = true
+  aliases          = lookup(var.aliases, var.default_root_object[count.index], [])
   allow_overwrite  = var.dns_allow_overwrite
   parent_zone_id   = var.parent_zone_id
   parent_zone_name = var.parent_zone_name
-  target_dns_name  = try(aws_cloudfront_distribution.default[0].domain_name, "")
-  target_zone_id   = try(aws_cloudfront_distribution.default[0].hosted_zone_id, "")
+  target_dns_name  = aws_cloudfront_distribution.default[count.index].domain_name
+  target_zone_id   = aws_cloudfront_distribution.default[count.index].hosted_zone_id
   ipv6_enabled     = var.ipv6_enabled
 
   context = module.this.context

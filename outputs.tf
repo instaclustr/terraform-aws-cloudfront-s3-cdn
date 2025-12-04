@@ -1,31 +1,31 @@
 output "cf_id" {
-  value       = try(aws_cloudfront_distribution.default[0].id, "")
-  description = "ID of AWS CloudFront distribution"
+  value       = aws_cloudfront_distribution.default[*].id
+  description = "IDs of AWS CloudFront distributions"
 }
 
 output "cf_arn" {
-  value       = try(aws_cloudfront_distribution.default[0].arn, "")
-  description = "ARN of AWS CloudFront distribution"
+  value       = aws_cloudfront_distribution.default[*].arn
+  description = "ARNs of AWS CloudFront distributions"
 }
 
 output "cf_status" {
-  value       = try(aws_cloudfront_distribution.default[0].status, "")
-  description = "Current status of the distribution"
+  value       = aws_cloudfront_distribution.default[*].status
+  description = "Current statuses of the distributions"
 }
 
 output "cf_domain_name" {
-  value       = try(aws_cloudfront_distribution.default[0].domain_name, "")
-  description = "Domain name corresponding to the distribution"
+  value       = aws_cloudfront_distribution.default[*].domain_name
+  description = "Domain names corresponding to the distributions"
 }
 
 output "cf_etag" {
-  value       = try(aws_cloudfront_distribution.default[0].etag, "")
-  description = "Current version of the distribution's information"
+  value       = aws_cloudfront_distribution.default[*].etag
+  description = "Current versions of the distributions' information"
 }
 
 output "cf_hosted_zone_id" {
-  value       = try(aws_cloudfront_distribution.default[0].hosted_zone_id, "")
-  description = "CloudFront Route 53 zone ID"
+  value       = aws_cloudfront_distribution.default[*].hosted_zone_id
+  description = "CloudFront Route 53 zone IDs"
 }
 
 output "cf_identity_iam_arn" {
@@ -49,8 +49,8 @@ output "cf_primary_origin_id" {
 }
 
 output "cf_origin_ids" {
-  value       = try(aws_cloudfront_distribution.default[0].origin[*].origin_id, [])
-  description = "List of Origin IDs in the CloudFront distribution."
+  value       = try(flatten(aws_cloudfront_distribution.default[*].origin[*].origin_id), [])
+  description = "List of all Origin IDs across all CloudFront distributions."
 }
 
 output "cf_s3_canonical_user_id" {
