@@ -47,7 +47,7 @@ variable "minimum_protocol_version" {
 }
 
 variable "aliases" {
-  type        = map(string)
+  type        = map(list(string))
   description = "List of FQDN's - Used to set the Alternate Domain Names (CNAMEs) setting on Cloudfront"
   default     = {}
 }

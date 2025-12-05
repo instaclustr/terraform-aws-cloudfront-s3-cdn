@@ -153,7 +153,7 @@ resource "aws_cloudfront_distribution" "default" {
     prefix          = var.log_prefix
   }
 
-  aliases = [var.aliases[var.default_root_object[count.index]]]
+  aliases = var.aliases[var.default_root_object[count.index]]
 
   origin {
     domain_name = local.bucket_domain_name
