@@ -108,6 +108,7 @@ module "logs" {
   expiration_days            = var.log_expiration_days
   force_destroy              = var.origin_force_destroy
   enable_glacier_transition  = var.log_glacier_transition_days > 0 ? true : false
+  versioning_enabled         = false
 }
 
 module "distribution_label" {
