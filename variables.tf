@@ -131,6 +131,18 @@ variable "log_expiration_days" {
   default     = "90"
 }
 
+variable "log_transition_default_minimum_object_size" {
+  type        = string
+  description = "The default minimum object size behavior applied to the lifecycle configuration for the logs bucket"
+  default     = "varies_by_storage_class"
+}
+
+variable "log_versioning_enabled" {
+  type        = bool
+  description = "Enable versioning for the logs bucket. When false, versioning is suspended but the resource is still managed."
+  default     = false
+}
+
 variable "forward_query_string" {
   default     = "false"
   description = "Forward query strings to the origin that is associated with this cache behavior"
