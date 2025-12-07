@@ -96,7 +96,7 @@ resource "aws_s3_bucket_cors_configuration" "origin" {
 }
 
 module "logs" {
-  source                     = "git::https://github.com/cloudposse/terraform-aws-s3-log-storage.git?ref=tags/1.0.0"
+  source                     = "git::https://github.com/instaclustr/terraform-aws-s3-log-storage.git?ref=ic-console2-dns"
   namespace                  = var.namespace
   stage                      = var.stage
   name                       = var.name
