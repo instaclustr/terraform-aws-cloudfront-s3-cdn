@@ -4,7 +4,7 @@ module "origin_label" {
   stage      = var.stage
   name       = var.name
   delimiter  = var.delimiter
-  attributes = var.attributes
+  attributes = compact(concat(var.attributes, ["origin"]))
   tags       = var.tags
 }
 
@@ -101,7 +101,7 @@ module "logs" {
   stage                      = var.stage
   name                       = var.name
   delimiter                  = var.delimiter
-  attributes                 = var.attributes
+  attributes                 = compact(concat(var.attributes, ["logs"]))
   tags                       = var.tags
   standard_transition_days   = var.log_standard_transition_days
   glacier_transition_days    = var.log_glacier_transition_days
